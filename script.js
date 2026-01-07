@@ -1,179 +1,134 @@
 import { db, ref, set, update, onValue } from "./firebase.js";
 
-/* ================== VARIABLES ================== */
 let roomCode = "";
 let myPlayer = -1;
 
-// 52-step Ludo path (13x13 grid index)
-const PATH = [
-  6,7,8,9,10,23,36,49,62,75,88,101,114,
-  115,116,117,118,119,106,93,80,67,54,41,28,
-  15,14,13,12,11,24,37,50,63,76,89,102,
-  103,104,105,120,121,122,109,96,83,70,57,44,31,18
+const PATH_POS = [
+  {x:150,y:15},{x:175,y:15},{x:200,y:15},{x:225,y:15},{x:250,y:15},
+  {x:250,y:40},{x:250,y:65},{x:250,y:90},{x:250,y:115},{x:250,y:140},
+  {x:250,y:165},{x:250,y:190},{x:250,y:215},
+
+  {x:225,y:215},{x:200,y:215},{x:175,y:215},{x:150,y:215},{x:125,y:215},
+  {x:125,y:190},{x:125,y:165},{x:125,y:140},{x:125,y:115},{x:125,y:90},{x:125,y:65},
+
+  {x:125,y:40},{x:100,y:40},{x:75,y:40},{x:50,y:40},{x:25,y:40},
+  {x:25,y:65},{x:25,y:90},{x:25,y:115},{x:25,y:140},{x:25,y:165},{x:25,y:190},
+
+  {x:50,y:190},{x:75,y:190},{x:100,y:190},{x:100,y:165},{x:100,y:140},
+  {x:100,y:115},{x:100,y:90},{x:100,y:65},{x:100,y:40}
 ];
 
-// Safe cells (no kill)
 const SAFE = [0,8,13,21,26,34,39,47];
 
-// Game state
 let state = {
   turn: 0,
   dice: 0,
   players: 0,
   tokens: {
-    0: [-1, -1, -1, -1],
-    1: [-1, -1, -1, -1],
-    2: [-1, -1, -1, -1],
-    3: [-1, -1, -1, -1]
+    0: [-1,-1,-1,-1],
+    1: [-1,-1,-1,-1],
+    2: [-1,-1,-1,-1],
+    3: [-1,-1,-1,-1]
   }
 };
 
-/* ================== BOARD CREATE ================== */
-const board = document.getElementById("board");
-for (let i = 0; i < 169; i++) {
-  const cell = document.createElement("div");
-  cell.className = "cell";
-  board.appendChild(cell);
-}
-
-/* ================== CREATE ROOM ================== */
-window.createRoom = function () {
-  roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+/* CREATE ROOM */
+window.createRoom = () => {
+  roomCode = Math.random().toString(36).substring(2,7).toUpperCase();
   myPlayer = 0;
-
-  document.getElementById("roomCodeText").innerText =
-    "Room Code: " + roomCode;
-
+  document.getElementById("roomCodeText").innerText = "Room Code: " + roomCode;
   document.getElementById("game").style.display = "block";
-
   state.players = 1;
-  state.turn = 0;
-  state.dice = 0;
-
-  set(ref(db, "rooms/" + roomCode), state);
+  set(ref(db,"rooms/"+roomCode), state);
   listenRoom();
 };
 
-/* ================== JOIN ROOM ================== */
-window.joinRoom = function () {
+/* JOIN ROOM */
+window.joinRoom = () => {
   roomCode = document.getElementById("roomInput").value;
-  if (!roomCode) return alert("Enter Room Code");
+  if(!roomCode) return alert("Enter Room Code");
 
-  const roomRef = ref(db, "rooms/" + roomCode);
-
-  onValue(
-    roomRef,
-    (snap) => {
-      if (!snap.exists()) {
-        alert("Room not found");
-        return;
-      }
-
-      const data = snap.val();
-      if (data.players >= 4) {
-        alert("Room Full");
-        return;
-      }
-
-      myPlayer = data.players;
-
-      update(roomRef, {
-        players: data.players + 1
-      });
-
-      document.getElementById("game").style.display = "block";
-      document.getElementById("roomCodeText").innerText =
-        "Joined Room: " + roomCode;
-
-      listenRoom();
-    },
-    { once: true }
-  );
+  const roomRef = ref(db,"rooms/"+roomCode);
+  onValue(roomRef, snap=>{
+    if(!snap.exists()) return alert("Room not found");
+    const d = snap.val();
+    if(d.players>=4) return alert("Room Full");
+    myPlayer = d.players;
+    update(roomRef,{players:d.players+1});
+    document.getElementById("game").style.display="block";
+    document.getElementById("roomCodeText").innerText="Joined: "+roomCode;
+    listenRoom();
+  },{once:true});
 };
 
-/* ================== LISTEN ROOM ================== */
-function listenRoom() {
-  onValue(ref(db, "rooms/" + roomCode), (snap) => {
-    if (!snap.val()) return;
+/* LISTEN */
+function listenRoom(){
+  onValue(ref(db,"rooms/"+roomCode),snap=>{
+    if(!snap.val()) return;
     state = snap.val();
     render();
   });
 }
 
-/* ================== ROLL DICE ================== */
-window.rollDice = function () {
-  if (state.turn !== myPlayer) {
-    alert("Not your turn");
-    return;
-  }
-
-  const d = Math.floor(Math.random() * 6) + 1;
-  state.dice = d;
-
-  update(ref(db, "rooms/" + roomCode), state);
+/* DICE */
+window.rollDice = () => {
+  if(state.turn!==myPlayer) return alert("Wait your turn");
+  state.dice = Math.floor(Math.random()*6)+1;
+  update(ref(db,"rooms/"+roomCode),state);
 };
 
-/* ================== MOVE TOKEN ================== */
-function moveToken(player, index) {
-  if (state.turn !== myPlayer) return;
-  if (state.dice === 0) return;
+/* MOVE TOKEN (ANIMATED) */
+async function moveToken(p,i){
+  if(state.turn!==myPlayer || state.dice===0) return;
+  let pos = state.tokens[p][i];
 
-  let pos = state.tokens[player][index];
-
-  // Open token
-  if (pos === -1) {
-    if (state.dice !== 6) return;
-    state.tokens[player][index] = 0;
-  } else {
-    let next = pos + state.dice;
-    if (next >= PATH.length) return;
-    state.tokens[player][index] = next;
-    checkKill(player, next);
+  if(pos===-1){
+    if(state.dice!==6) return;
+    state.tokens[p][i]=0;
+    render();
+  }else{
+    for(let s=0;s<state.dice;s++){
+      await sleep(180);
+      state.tokens[p][i]++;
+      render();
+    }
+    checkKill(p,state.tokens[p][i]);
   }
 
-  // Turn handling
-  if (state.dice !== 6) {
-    state.turn = (state.turn + 1) % 4;
-  }
-
-  state.dice = 0;
-  update(ref(db, "rooms/" + roomCode), state);
+  if(state.dice!==6) state.turn=(state.turn+1)%4;
+  state.dice=0;
+  update(ref(db,"rooms/"+roomCode),state);
 }
 
-/* ================== KILL LOGIC ================== */
-function checkKill(player, pos) {
-  if (SAFE.includes(pos)) return;
+/* KILL */
+function checkKill(player,pos){
+  if(SAFE.includes(pos)) return;
+  Object.keys(state.tokens).forEach(p=>{
+    if(+p===player) return;
+    state.tokens[p].forEach((tp,i)=>{
+      if(tp===pos) state.tokens[p][i]=-1;
+    });
+  });
+}
 
-  Object.keys(state.tokens).forEach((p) => {
-    if (+p === player) return;
-    state.tokens[p].forEach((tp, i) => {
-      if (tp === pos) {
-        state.tokens[p][i] = -1; // back to home
+/* RENDER */
+function render(){
+  document.getElementById("dice").innerText="Dice: "+state.dice;
+  document.getElementById("turn").innerText="Turn: Player "+state.turn;
+  document.querySelectorAll(".token").forEach(t=>t.remove());
+
+  Object.keys(state.tokens).forEach(p=>{
+    state.tokens[p].forEach((pos,i)=>{
+      if(pos>=0){
+        const t=document.createElement("div");
+        t.className="token "+["red","green","yellow","blue"][p];
+        t.style.left=PATH_POS[pos].x+"px";
+        t.style.top=PATH_POS[pos].y+"px";
+        t.onclick=()=>moveToken(+p,i);
+        document.getElementById("board").appendChild(t);
       }
     });
   });
 }
 
-/* ================== RENDER ================== */
-function render() {
-  document.getElementById("dice").innerText =
-    "Dice: " + state.dice;
-
-  document.getElementById("turn").innerText =
-    "Turn: Player " + state.turn;
-
-  document.querySelectorAll(".cell").forEach((c) => (c.innerHTML = ""));
-
-  Object.keys(state.tokens).forEach((p) => {
-    state.tokens[p].forEach((pos, idx) => {
-      if (pos >= 0) {
-        const cell = document.querySelectorAll(".cell")[PATH[pos]];
-        const token = document.createElement("div");
-        token.className =
-          "token " + ["red", "green", "yellow", "blue"][p];
-        token.onclick = () => moveToken(+p, idx);
-        cell.appendChild(token);
-      }
-    });
-  });
-}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
