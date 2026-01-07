@@ -8,8 +8,13 @@
 
 <h2>🎲 Online Ludo King Style</h2>
 
-<input id="room" placeholder="Room Code">
+<button onclick="createRoom()">➕ Create Room</button>
+<br><br>
+
+<input id="roomInput" placeholder="Enter Room Code">
 <button onclick="joinRoom()">Join Room</button>
+
+<p id="roomCodeText"></p>
 
 <div id="game" style="display:none;">
   <div id="board"></div>
@@ -22,4 +27,4 @@
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
 </body>
-</html>
+    </html>
