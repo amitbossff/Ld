@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: ludo-online
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        value: amit-a7b1f.firebaseapp.com
+      - key: FIREBASE_DATABASE_URL
+        value: https://amit-a7b1f-default-rtdb.firebaseio.com
+      - key: FIREBASE_PROJECT_ID
+        value: amit-a7b1f
+      - key: FIREBASE_STORAGE_BUCKET
+        value: amit-a7b1f.firebasestorage.app
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        value: "875229760738"
+      - key: FIREBASE_APP_ID
+        value: "1:875229760738:web:3981228866e3e8fe00e2bb"
+      - key: FIREBASE_MEASUREMENT_ID
+        value: G-YTBDPB2DRB
