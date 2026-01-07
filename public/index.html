@@ -1,1 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎲 Ludo Online - Play with Friends</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-dice"></i> Ludo Online</h1>
+            <p class="subtitle">Play Ludo with friends in real-time. Create a room and invite your friend!</p>
+        </header>
 
+        <!-- Main Game Area -->
+        <div class="main-content">
+            <!-- Left: Game Board -->
+            <div class="game-board-section">
+                <div class="board-header">
+                    <h2><i class="fas fa-chess-board"></i> Game Board</h2>
+                    <div class="room-status">
+                        <span id="roomStatus">Not in a room</span>
+                        <div class="player-indicator">
+                            <span class="dot you"></span> You
+                            <span class="dot opponent"></span> Opponent
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Canvas for Ludo Board -->
+                <div class="board-container">
+                    <canvas id="ludoBoard" width="500" height="500"></canvas>
+                    
+                    <!-- Player Tokens will be drawn here -->
+                    <div class="dice-display">
+                        <div class="dice" id="diceElement">
+                            <div class="dice-face" id="diceFace">🎲</div>
+                        </div>
+                        <div class="dice-info">
+                            <p id="diceValueText">Click Roll Dice</p>
+                            <p id="turnIndicator">Waiting for players...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Game Controls -->
+            <div class="controls-section">
+                <!-- Room Controls -->
+                <div class="control-card">
+                    <h3><i class="fas fa-door-open"></i> Room Controls</h3>
+                    
+                    <div class="form-group" id="playerSetup">
+                        <input type="text" id="playerName" placeholder="Enter your name" value="Player">
+                        <button class="btn primary" onclick="createRoom()">
+                            <i class="fas fa-plus-circle"></i> Create Room
+                        </button>
+                    </div>
+                    
+                    <div class="divider">OR</div>
+                    
+                    <div class="form-group">
+                        <input type="text" id="joinRoomId" placeholder="Enter Room ID">
+                        <button class="btn success" onclick="joinRoom()">
+                            <i class="fas fa-sign-in-alt"></i> Join Room
+                        </button>
+                    </div>
+                    
+                    <div id="roomInfo" class="hidden">
+                        <div class="room-card">
+                            <h4><i class="fas fa-users"></i> Room Info</h4>
+                            <p><strong>Room ID:</strong> <span id="currentRoomId" class="room-id">XXXXXX</span></p>
+                            <p><strong>Players:</strong> <span id="playerCount">1</span>/4</p>
+                            <p><strong>Status:</strong> <span id="gameStatusText">Waiting...</span></p>
+                            <button class="btn small" onclick="copyRoomId()">
+                                <i class="fas fa-copy"></i> Copy Room ID
+                            </button>
+                            <button class="btn small danger" onclick="leaveRoom()">
+                                <i class="fas fa-sign-out-alt"></i> Leave Room
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Controls -->
+                <div class="control-card">
+                    <h3><i class="fas fa-gamepad"></i> Game Controls</h3>
+                    
+                    <div class="game-controls">
+                        <button id="rollDiceBtn" class="btn large" onclick="rollDice()" disabled>
+                            <i class="fas fa-dice"></i> Roll Dice
+                        </button>
+                        
+                        <div class="tokens-control">
+                            <h4>Select Token to Move:</h4>
+                            <div class="tokens">
+                                <div class="token-btn red" onclick="moveToken(0)">1</div>
+                                <div class="token-btn red" onclick="moveToken(1)">2</div>
+                                <div class="token-btn red" onclick="moveToken(2)">3</div>
+                                <div class="token-btn red" onclick="moveToken(3)">4</div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn ready" id="readyBtn" onclick="toggleReady()">
+                            <i class="fas fa-check-circle"></i> Ready
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Players List -->
+                <div class="control-card">
+                    <h3><i class="fas fa-users"></i> Players (<span id="playersCount">0</span>/4)</h3>
+                    <div id="playersList" class="players-list">
+                        <div class="player-item waiting">
+                            <div class="player-color red"></div>
+                            <span>Waiting for player...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat -->
+                <div class="control-card chat-card">
+                    <h3><i class="fas fa-comments"></i> Chat</h3>
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="message system">
+                            Welcome to Ludo Online! Create or join a room to start playing.
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="Type your message..." disabled>
+                        <button class="btn" onclick="sendChatMessage()" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Rules Footer -->
+        <footer class="footer">
+            <div class="rules">
+                <h4><i class="fas fa-info-circle"></i> How to Play:</h4>
+                <ol>
+                    <li>Create a room or join with Room ID</li>
+                    <li>Wait for friend to join (2-4 players)</li>
+                    <li>Click "Ready" when all players are in</li>
+                    <li>Roll dice and move tokens to reach home</li>
+                    <li>First to get all 4 tokens home wins!</li>
+                </ol>
+            </div>
+            <div class="status">
+                <p><i class="fas fa-signal"></i> Connection: <span id="connectionStatus">Disconnected</span></p>
+                <p><i class="fas fa-user"></i> Your ID: <span id="myPlayerId">---</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="winnerModal" class="modal hidden">
+        <div class="modal-content">
+            <h2><i class="fas fa-trophy"></i> Winner!</h2>
+            <p id="winnerMessage">Player wins the game!</p>
+            <button class="btn" onclick="closeModal()">Continue Playing</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
