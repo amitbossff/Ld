@@ -1,0 +1,43 @@
+body {
+  background:#0f172a;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+}
+
+#board {
+  width: 330px;
+  height: 330px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: repeat(13,1fr);
+  grid-template-rows: repeat(13,1fr);
+  background:#eee;
+}
+
+.cell {
+  border:1px solid #999;
+  position:relative;
+}
+
+.token {
+  width:70%;
+  height:70%;
+  border-radius:50%;
+  margin:auto;
+}
+
+.red{background:red}
+.green{background:green}
+.yellow{background:gold}
+.blue{background:blue}
+
+@keyframes shake {
+  0%{transform:rotate(0deg)}
+  25%{transform:rotate(10deg)}
+  50%{transform:rotate(-10deg)}
+  100%{transform:rotate(0deg)}
+}
+.dice-anim{
+  animation:shake .4s;
+}

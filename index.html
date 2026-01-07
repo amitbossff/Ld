@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Online Ludo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>🎲 Online Ludo King Style</h2>
+
+<input id="room" placeholder="Room Code">
+<button onclick="joinRoom()">Join Room</button>
+
+<div id="game" style="display:none;">
+  <div id="board"></div>
+
+  <button onclick="rollDice()">🎲 Roll Dice</button>
+  <p id="dice">Dice: -</p>
+  <p id="turn">Turn: -</p>
+</div>
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
+</body>
+</html>
